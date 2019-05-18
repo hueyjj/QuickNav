@@ -25,6 +25,8 @@ namespace QuickNav
         private static extern bool SetForegroundWindow(IntPtr handle);
         [System.Runtime.InteropServices.DllImport("User32.dll")]
         private static extern void SwitchToThisWindow(IntPtr hWnd);
+        [System.Runtime.InteropServices.DllImport("User32.dll")]
+        private static extern bool IsIconic(IntPtr hWnd);
 
         private StackPanel mainStackPanel;
         private TextBox searchTextBox;
@@ -71,9 +73,21 @@ namespace QuickNav
                     {
                         tabIndex = (tabIndex + 1) % filteredProcesses.Count;
                     }
+                    foreach (object child in mainStackPanel.Children) {
+                        if (child is TextBlock) {
+                            TextBlock childTextBlock = (child as TextBlock);
+                            String childText = childTextBlock.Text;
+                            if (childText.Equals(filteredProcesses[tabIndex].MainWindowTitle)) {
+                                childTextBlock.Background = new SolidColorBrush(Color.FromRgb(0, 0, 255));
+                            } else {
+                                childTextBlock.Background = new SolidColorBrush(Color.FromRgb(255, 255, 255));
+                            }
+                        }
+                    }
                     Console.WriteLine("Tab key down. tabIndex=" + tabIndex + " mainWindowTitle=" + filteredProcesses[tabIndex].MainWindowTitle);
                     break;
                 default:
+                    UpdateFilteredProcessList();
                     break;
             }
         }
@@ -82,19 +96,24 @@ namespace QuickNav
             Process[] allProcesses = Process.GetProcesses();
             foreach (Process p in allProcesses)
             {
-                if (p.MainWindowTitle != "")
+                if (!p.MainWindowTitle.Equals(""))
                 {
                     processes.Add(p);
                     filteredProcesses.Add(p);
-                    //SetForegroundWindow(p.MainWindowHandle);
-                    //SwitchToThisWindow(p.MainWindowHandle);
                     TextBlock processTextBlock = new TextBlock();
-                    processTextBlock.Text = p.MainWindowTitle;
+                    // if (IsIconic(p.MainWindowHandle)) {
+                    //     Console.WriteLine("p.MainWindowHandle={0} p.MainWindowTitle{1}", p.MainWindowHandle, p.MainWindowTitle);
+                    // }
+                    processTextBlock.Text = p.MainWindowHandle + " " + p.ProcessName + " " + p.MainWindowTitle;
                     processTextBlock.Background = new SolidColorBrush(Color.FromRgb(255, 255, 255));
                     mainStackPanel.Children.Add(processTextBlock);
                     Console.WriteLine("p.MainWindowTitle: " + p.MainWindowTitle);
                 }
             }
+        }
+
+        private void UpdateFilteredProcessList() {
+            String term = searchTextBox.Text;
         }
     }
 }
