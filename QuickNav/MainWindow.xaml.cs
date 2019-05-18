@@ -29,6 +29,7 @@ namespace QuickNav
         private static extern bool IsIconic(IntPtr hWnd);
 
         private StackPanel mainStackPanel;
+        private StackPanel searchStackPanel;
         private TextBox searchTextBox;
 
         private List<Process> processes = new List<Process>();
@@ -49,14 +50,19 @@ namespace QuickNav
             searchTextBoxThickness.Right = 10;
             searchTextBox.Margin = searchTextBoxThickness;
             searchTextBox.KeyDown += OnSearchTextBoxKeyDown;
+            searchTextBox.TextChanged += OnSearchTextBoxTextChange;
             mainStackPanel.Children.Add(searchTextBox);
+            searchStackPanel = new StackPanel();
+            mainStackPanel.Children.Add(searchStackPanel);
             this.Content = mainStackPanel;
 
 
             UpdateProcessList();
+            UpdateSearchResults();
         }
 
         private void OnSearchTextBoxKeyDown(object sender, KeyEventArgs e) {
+            Console.Write(e.Key + " ");
             switch(e.Key) 
             {
                 case Key.Return:
@@ -73,7 +79,8 @@ namespace QuickNav
                     {
                         tabIndex = (tabIndex + 1) % filteredProcesses.Count;
                     }
-                    foreach (object child in mainStackPanel.Children) {
+                    // Highlight selection (tabIndex)
+                    foreach (object child in searchStackPanel.Children) {
                         if (child is TextBlock) {
                             TextBlock childTextBlock = (child as TextBlock);
                             String childText = childTextBlock.Text;
@@ -87,9 +94,13 @@ namespace QuickNav
                     Console.WriteLine("Tab key down. tabIndex=" + tabIndex + " mainWindowTitle=" + filteredProcesses[tabIndex].MainWindowTitle);
                     break;
                 default:
-                    UpdateFilteredProcessList();
                     break;
             }
+        }
+
+        private void OnSearchTextBoxTextChange(object sender, EventArgs e) {
+            UpdateFilteredProcessList();
+            UpdateSearchResults();
         }
 
         private void UpdateProcessList() {
@@ -100,20 +111,48 @@ namespace QuickNav
                 {
                     processes.Add(p);
                     filteredProcesses.Add(p);
-                    TextBlock processTextBlock = new TextBlock();
+                    // TextBlock processTextBlock = new TextBlock();
+                    // processTextBlock.Text = p.ProcessName + " " + p.MainWindowTitle;
+                    // processTextBlock.Text = p.MainWindowTitle;
+                    // processTextBlock.Background = new SolidColorBrush(Color.FromRgb(255, 255, 255));
+                    // searchStackPanel.Children.Add(processTextBlock);
+                    Console.WriteLine("p.MainWindowTitle: " + p.MainWindowTitle);
                     // if (IsIconic(p.MainWindowHandle)) {
                     //     Console.WriteLine("p.MainWindowHandle={0} p.MainWindowTitle{1}", p.MainWindowHandle, p.MainWindowTitle);
                     // }
-                    processTextBlock.Text = p.MainWindowHandle + " " + p.ProcessName + " " + p.MainWindowTitle;
-                    processTextBlock.Background = new SolidColorBrush(Color.FromRgb(255, 255, 255));
-                    mainStackPanel.Children.Add(processTextBlock);
-                    Console.WriteLine("p.MainWindowTitle: " + p.MainWindowTitle);
+                } 
+                else 
+                {
+                    // Console.WriteLine("?p.MainWindowTitle:" + p.ProcessName + " " + p.MainWindowTitle);
                 }
             }
         }
 
         private void UpdateFilteredProcessList() {
-            String term = searchTextBox.Text;
+            filteredProcesses.Clear();
+
+            String term = searchTextBox.Text.ToLower();
+            foreach (Process p in processes) {
+                if (p.MainWindowTitle.ToLower().Contains(term)) {
+                    filteredProcesses.Add(p);
+                }
+            }
+        }
+        
+        private void UpdateSearchResults() {
+            searchStackPanel.Children.Clear();
+
+            for (int i = 0; i < filteredProcesses.Count; i++) {
+                Process p = filteredProcesses[i];
+                TextBlock processTextBlock = new TextBlock();
+                processTextBlock.Text = p.MainWindowTitle;
+                if (i == 0) {
+                    processTextBlock.Background = new SolidColorBrush(Color.FromRgb(0, 0, 255));
+                } else {
+                    processTextBlock.Background = new SolidColorBrush(Color.FromRgb(255, 255, 255));
+                }
+                searchStackPanel.Children.Add(processTextBlock);
+            }
         }
     }
 }
